@@ -41,7 +41,7 @@ def parse_arguments():
 def create_tokenizer(text_data: pd.Series):
     if os.path.exists('./data/tokenizer.pickle'):
         print('Tokenizer file already exists, reading it')
-        
+
         with open('./data/tokenizer.pickle', 'rb') as pickled_tokenizer:
             tokenizer = pickle.load(pickled_tokenizer)
     else:
@@ -68,15 +68,12 @@ def create_model(learning_rate):
             CONFIG.EMBEDDING_DIM,
             input_length=CONFIG.MAX_LENGTH
         ),
-        tf.keras.layers.GlobalAveragePooling1D(),
-        tf.keras.layers.Dense(
-            32,
-            activation='relu'
-        ),
-        tf.keras.layers.Dense(
-            1,
-            activation='sigmoid'
-        )
+        tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64)),
+        tf.keras.layers.Dropout(.4),
+        tf.keras.layers.Dense(32, activation = tf.nn.relu),
+        tf.keras.layers.Dropout(.4),
+        tf.keras.layers.Dense(16, activation = tf.nn.relu),
+        tf.keras.layers.Dense(1, activation = tf.nn.sigmoid)
     ])
     
     model.compile(loss=tf.keras.losses.BinaryCrossentropy(),
