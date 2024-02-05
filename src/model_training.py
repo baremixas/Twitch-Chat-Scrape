@@ -24,7 +24,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Model training script')
 
     parser.add_argument(
-        '--file_name', 
+        '--data_filename', 
         type=str, 
         default='data',
         help='Data file name'
@@ -40,6 +40,8 @@ def parse_arguments():
 
 def create_tokenizer(text_data: pd.Series):
     if os.path.exists('./data/tokenizer.pickle'):
+        print('Tokenizer file already exists, reading it')
+        
         with open('./data/tokenizer.pickle', 'rb') as pickled_tokenizer:
             tokenizer = pickle.load(pickled_tokenizer)
     else:
@@ -68,7 +70,7 @@ def create_model(learning_rate):
         ),
         tf.keras.layers.GlobalAveragePooling1D(),
         tf.keras.layers.Dense(
-            16,
+            32,
             activation='relu'
         ),
         tf.keras.layers.Dense(
@@ -99,7 +101,7 @@ def train_model(model, features, output, epochs, batch_size, validation_split):
     
     return history
 
-def print_train_metrics(history: tf.keras.callbacks.History):
+def print_train_metrics(history: tf.keras.callbacks.History, model_name: str):
     plt.plot(
         history.epoch, 
         history.history['loss'], label='Loss'
@@ -121,42 +123,45 @@ def print_train_metrics(history: tf.keras.callbacks.History):
     plt.xlabel('Epoch')
     plt.legend()
 
-    plt.savefig('./models/train_metrics.png')
+    plt.savefig(f'./models/{model_name}_train_metrics.png')
 
-def print_train_val_metrics(history: tf.keras.callbacks.History):
+def print_train_val_metrics(history: tf.keras.callbacks.History, model_name: str):
     pd.DataFrame(history.history).plot()
     plt.title("Evaluation metrics")
 
-    plt.savefig('./models/train_val_metrics.png')
+    plt.savefig(f'./models/{model_name}_train_val_metrics.png')
 
-def main(file_name: str):
-    df = pd.read_csv(f'./data/{file_name}_processed.csv')
+def main(data_filename: str, model_name: str):
+    if os.path.exists(f'./models/{model_name}.h5'):
+        print('Model file with given name already exists, skipping model training')
+    else:
+        df = pd.read_csv(f'./data/{data_filename}_processed.csv')
 
-    X = tokenize_text(df['text'])
-    y = df['sentiment']
+        X = tokenize_text(df['text'])
+        y = df['sentiment']
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y,
-        shuffle=True,
-        stratify=y,
-        random_state=1,
-        test_size=CONFIG.TEST_SPLIT
-        )
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y,
+            shuffle=True,
+            stratify=y,
+            random_state=1,
+            test_size=CONFIG.TEST_SPLIT
+            )
 
-    model = create_model(CONFIG.LEARNING_RATE)
+        model = create_model(CONFIG.LEARNING_RATE)
 
-    print('Training model...')
-    history = train_model(model, X_train, y_train, CONFIG.EPOCHS_NUMBER, CONFIG.BATCH_SIZE, CONFIG.VALIDATION_SPLIT)
+        print('Training model...')
+        history = train_model(model, X_train, y_train, CONFIG.EPOCHS_NUMBER, CONFIG.BATCH_SIZE, CONFIG.VALIDATION_SPLIT)
 
-    print('Evaluating model...')
-    model.evaluate(X_test, y_test)
+        print('Evaluating model...')
+        model.evaluate(X_test, y_test)
 
-    model.save("./models/model.keras")
+        model.save(f"./models/{model_name}.h5")
 
-    print_train_metrics(history, epochs)
-    print_train_val_metrics(history)
+        print_train_metrics(history, model_name)
+        print_train_val_metrics(history, model_name)
 
 
 if __name__ == '__main__':
     args = parse_arguments()
-    main(args.file_name)
+    main(args.data_filename, args.model_name)
