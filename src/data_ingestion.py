@@ -8,7 +8,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Data ingestion script')
 
     parser.add_argument(
-        '--file_name', 
+        '--data_filename', 
         type=str, 
         default='data',
         help='Data file name'
@@ -16,11 +16,11 @@ def parse_arguments():
 
     return parser.parse_args()
 
-def download_dataset(file_name: str):
-    if os.path.exists(f'./data/{file_name}.csv'):
-        pass
+def download_dataset(data_filename: str):
+    if os.path.exists(f'./data/{data_filename}.csv'):
+        print('Data file with given name already exists, skipping data downloading')
     else:
-        load_dataset("sentiment140")['train'].to_csv(f"./data/{file_name}.csv")
+        load_dataset("sentiment140")['train'].to_csv(f"./data/{data_filename}.csv")
 
 def clean_text(text):
     text = re.sub('@[^\s]+','user',text) #Remove usernames
@@ -42,11 +42,11 @@ def process_data(data: pd.DataFrame):
 
     return data
 
-def main(file_name: str):
-    download_dataset(file_name)
-    process_data(pd.read_csv(f"./data/{file_name}.csv")).to_csv(f"./data/{file_name}_processed.csv")
+def main(data_filename: str):
+    download_dataset(data_filename)
+    process_data(pd.read_csv(f"./data/{data_filename}.csv")).to_csv(f"./data/{data_filename}_processed.csv")
 
 
 if __name__ == '__main__':
     args = parse_arguments()
-    main(args.file_name)
+    main(args.data_filename)
